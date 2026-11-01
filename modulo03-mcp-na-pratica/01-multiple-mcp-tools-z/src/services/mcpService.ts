@@ -16,8 +16,14 @@ export const getMCPTools = async () => {
 
   const mcpTools = await client.getTools()
 
-  return [
-    ...mcpTools,
-    getCSVTOJSONTool()
-  ];
+  // Devolvemos também o `client` para que o dono do ciclo de vida possa chamar
+  // `client.close()` no shutdown. Sem isso, ao encerrar o processo (process.exit),
+  // os servidores MCP filhos (stdio, via npx) morrem por pipe quebrado → EPIPE.
+  return {
+    client,
+    tools: [
+      ...mcpTools,
+      getCSVTOJSONTool()
+    ],
+  };
 };

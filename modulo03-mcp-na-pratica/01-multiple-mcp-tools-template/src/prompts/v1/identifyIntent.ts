@@ -17,6 +17,3 @@ The user message may contain a natural-language instruction mixed with raw file 
 Separate them cleanly: the intent is the goal, fileContent is the raw data block, fileName is the inferred file name.
 If no file data is present, set fileContent and fileName to null.
 `.trim();
-
-
-

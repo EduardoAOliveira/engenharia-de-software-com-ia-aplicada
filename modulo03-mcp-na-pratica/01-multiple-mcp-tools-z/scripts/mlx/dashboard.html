@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MLX Monitor</title>
+<style>
+  :root {
+    --bg:      #0C0A07;
+    --surface: #15110A;
+    --surface2:#1B160D;
+    --line:    #2A2216;
+    --amber:   #FFB000;
+    --amber-d: #B5822B;
+    --text:    #F3E7CC;
+    --muted:   #8A7B5B;
+    --alert:   #FF5236;
+    --ok:      #9BC24D;
+    --mono: "SF Mono", "Menlo", "Monaco", "Roboto Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    padding: clamp(12px, 2.5vw, 28px);
+    /* leve textura de scanline CRT, quase imperceptível */
+    background-image: repeating-linear-gradient(
+      to bottom, rgba(255,176,0,0.014) 0 1px, transparent 1px 3px);
+  }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+  .wrap { max-width: 1120px; margin: 0 auto; display: grid; gap: 14px; }
+
+  .eyebrow { text-transform: uppercase; letter-spacing: .22em; font-size: 10.5px; color: var(--amber-d); }
+  .glow { color: var(--amber); text-shadow: 0 0 12px rgba(255,176,0,.45); }
+
+  /* ── header ── */
+  header {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap;
+    padding-bottom: 12px; border-bottom: 1px solid var(--line);
+  }
+  h1 { margin: 0; font-size: clamp(18px, 3vw, 26px); letter-spacing: .04em; font-weight: 600; }
+  h1 .dot { color: var(--amber); }
+  .modelline { color: var(--muted); font-size: 12px; margin-top: 3px; }
+  .modelline b { color: var(--text); font-weight: 600; }
+
+  .status { display: flex; align-items: center; gap: 9px; font-size: 12px; letter-spacing: .16em; text-transform: uppercase; }
+  .led { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); box-shadow: 0 0 0 rgba(0,0,0,0); }
+  .status.online .led { background: var(--ok); animation: pulse 1.8s ease-in-out infinite; }
+  .status.online { color: var(--ok); }
+  .status.offline .led { background: var(--alert); }
+  .status.offline { color: var(--alert); }
+  .status.starting .led { background: var(--amber); animation: pulse 1s ease-in-out infinite; }
+  .status.starting { color: var(--amber); }
+  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 currentColor; opacity: 1; } 50% { box-shadow: 0 0 10px 2px currentColor; opacity: .55; } }
+
+  /* ── gauges ── */
+  .gauges { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  @media (max-width: 640px) { .gauges { grid-template-columns: repeat(2, 1fr); } }
+  .gauge { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 15px; }
+  .gauge .k { font-size: 10px; text-transform: uppercase; letter-spacing: .18em; color: var(--amber-d); }
+  .gauge .v { font-size: clamp(22px, 4vw, 30px); font-weight: 600; margin-top: 6px; letter-spacing: .01em; }
+  .gauge .u { font-size: 11px; color: var(--muted); }
+
+  /* ── signal (signature) ── */
+  .signal { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px 16px; }
+  .signal .head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+  .signal .prog { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .track {
+    position: relative; height: 40px; border-radius: 5px; overflow: hidden;
+    background: linear-gradient(var(--surface2), #100c07);
+    border: 1px solid var(--line);
+  }
+  /* linha de base do "osciloscópio" */
+  .track::after {
+    content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 1px;
+    background: rgba(255,176,0,.12);
+  }
+  /* sweep de fósforo — o pulso vivo */
+  .sweep {
+    position: absolute; top: 0; bottom: 0; width: 34%;
+    background: linear-gradient(90deg, transparent, rgba(255,176,0,.10) 40%, rgba(255,176,0,.55) 82%, rgba(255,231,180,.9));
+    filter: blur(.3px);
+    transform: translateX(-40%);
+    animation: sweep var(--sweep-speed, 3.6s) linear infinite;
+  }
+  @keyframes sweep { from { transform: translateX(-40%); } to { transform: translateX(320%); } }
+  /* barra de preenchimento (progresso do prompt) */
+  .fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0%;
+    background: linear-gradient(180deg, rgba(255,176,0,.30), rgba(255,176,0,.10));
+    border-right: 1px solid rgba(255,176,0,.6); transition: width .2s linear; }
+
+  /* ── grid inferior ── */
+  .cols { display: grid; grid-template-columns: 1.05fr .95fr; gap: 14px; }
+  @media (max-width: 860px) { .cols { grid-template-columns: 1fr; } }
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; display: flex; flex-direction: column; min-height: 320px; }
+  .panel > .bar { padding: 11px 15px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; }
+
+  /* chat de teste */
+  .chatbody { flex: 1; padding: 14px 15px; overflow: auto; white-space: pre-wrap; word-break: break-word; min-height: 0; }
+  .chatbody .you { color: var(--amber-d); }
+  .chatbody .out { color: var(--text); }
+  .cursor { display: inline-block; width: .55em; height: 1.05em; background: var(--amber); vertical-align: text-bottom; margin-left: 1px; animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .composer { display: flex; gap: 8px; padding: 12px 13px; border-top: 1px solid var(--line); }
+  textarea {
+    flex: 1; resize: none; height: 40px; background: #0f0b06; color: var(--text);
+    border: 1px solid var(--line); border-radius: 6px; padding: 9px 11px; font: inherit;
+  }
+  textarea:focus { outline: none; border-color: var(--amber-d); box-shadow: 0 0 0 2px rgba(255,176,0,.12); }
+  button {
+    background: var(--amber); color: #1a1204; border: 0; border-radius: 6px;
+    font: inherit; font-weight: 700; letter-spacing: .04em; padding: 0 16px; cursor: pointer;
+    text-transform: uppercase; font-size: 12px;
+  }
+  button:hover { background: #ffc233; }
+  button:disabled { background: var(--amber-d); opacity: .6; cursor: not-allowed; }
+
+  /* log ao vivo */
+  .log { flex: 1; overflow: auto; padding: 10px 14px; font-size: 12px; min-height: 0; }
+  .log .row { display: flex; gap: 10px; padding: 1px 0; }
+  .log .ts { color: #5f5540; flex: none; font-variant-numeric: tabular-nums; }
+  .log .msg { color: var(--amber-d); word-break: break-word; }
+  .log .msg.WARNING { color: var(--amber); }
+  .log .msg.ERROR, .log .msg.CRITICAL { color: var(--alert); }
+  .log .msg.DEBUG { color: #6b6047; }
+
+  .foot { color: #5f5540; font-size: 11px; text-align: center; padding-top: 4px; }
+  .foot code { color: var(--amber-d); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1><span class="dot glow">◉</span> MLX&nbsp;MONITOR</h1>
+      <div class="modelline">modelo&nbsp; <b id="model">—</b></div>
+    </div>
+    <div id="status" class="status starting"><span class="led"></span><span id="statusText">iniciando</span></div>
+  </header>
+
+  <section class="gauges">
+    <div class="gauge"><div class="k">requisições</div><div class="v glow" id="g-req">0</div><div class="u">atendidas</div></div>
+    <div class="gauge"><div class="k">tok/s</div><div class="v glow" id="g-tps">—</div><div class="u">último teste</div></div>
+    <div class="gauge"><div class="k">prompt cache</div><div class="v" id="g-cache">—</div><div class="u">reuso de contexto</div></div>
+    <div class="gauge"><div class="k">uptime</div><div class="v" id="g-up">0s</div><div class="u">servidor ativo</div></div>
+  </section>
+
+  <section class="signal">
+    <div class="head"><span class="eyebrow">sinal ao vivo</span><span class="prog" id="signalProg">ocioso</span></div>
+    <div class="track"><div class="fill" id="fill"></div><div class="sweep" id="sweep"></div></div>
+  </section>
+
+  <section class="cols">
+    <div class="panel">
+      <div class="bar"><span class="eyebrow">testar o modelo</span><span class="prog" id="chatMeta"></span></div>
+      <div class="chatbody" id="chat"><span class="you">Pergunte algo para verificar o LLM local…</span></div>
+      <div class="composer">
+        <textarea id="input" placeholder="ex: some 1099 + 7 e explique em uma frase" autocomplete="off"></textarea>
+        <button id="send">Executar</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="bar"><span class="eyebrow">log ao vivo</span><span class="prog">mlx_lm.server</span></div>
+      <div class="log" id="log"></div>
+    </div>
+  </section>
+
+  <div class="foot">servido localmente por <code>npm run mlx:serve</code> · endpoint <code>127.0.0.1:8090/v1</code></div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+
+// ── uptime formatting ──
+function fmtUptime(ms) {
+  const s = Math.floor(ms / 1000);
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+  if (h) return `${h}h ${m}m`;
+  if (m) return `${m}m ${sec}s`;
+  return `${sec}s`;
+}
+
+// ── estado da UI vindo do launcher (SSE) ──
+let generating = false; // chat de teste em andamento
+
+function applyState(st) {
+  $('model').textContent = (st.model || '—').split('/').pop();
+
+  const el = $('status');
+  el.className = 'status ' + st.status;
+  $('statusText').textContent =
+    st.status === 'online' ? 'online' : st.status === 'offline' ? 'offline' : 'iniciando';
+
+  $('g-req').textContent = st.requests ?? 0;
+  $('g-cache').textContent = st.cache ? st.cache.replace(/\s*sequences?/, ' seq') : '—';
+  $('g-up').textContent = fmtUptime(st.uptime ?? 0);
+
+  // sinal: processando prompt do servidor OU gerando no chat de teste
+  const busy = !!st.prompt || generating;
+  $('sweep').style.setProperty('--sweep-speed', busy ? '1s' : '3.6s');
+  if (st.prompt) {
+    const pct = Math.round((st.prompt.done / st.prompt.total) * 100);
+    $('fill').style.width = pct + '%';
+    $('signalProg').textContent = `processando prompt · ${st.prompt.done}/${st.prompt.total} (${pct}%)`;
+  } else if (!generating) {
+    $('fill').style.width = '0%';
+    $('signalProg').textContent = 'ocioso';
+  }
+}
+
+function addLog(e) {
+  const log = $('log');
+  const near = log.scrollTop + log.clientHeight >= log.scrollHeight - 30;
+  const row = document.createElement('div');
+  row.className = 'row';
+  const ts = new Date(e.t).toLocaleTimeString('pt-BR', { hour12: false });
+  row.innerHTML = `<span class="ts">${ts}</span><span class="msg ${e.level}"></span>`;
+  row.querySelector('.msg').textContent = e.text;
+  log.appendChild(row);
+  while (log.childElementCount > 300) log.removeChild(log.firstChild);
+  if (near) log.scrollTop = log.scrollHeight;
+}
+
+const es = new EventSource('/events');
+es.onmessage = (ev) => {
+  const d = JSON.parse(ev.data);
+  if (d.type === 'state') applyState(d);
+  else if (d.type === 'log') addLog(d);
+};
+es.onerror = () => { $('status').className = 'status offline'; $('statusText').textContent = 'sem conexão'; };
+
+// ── chat de teste (streaming + tok/s) ──
+const chat = $('chat'), input = $('input'), send = $('send');
+
+async function run() {
+  const content = input.value.trim();
+  if (!content || generating) return;
+  generating = true; send.disabled = true; input.value = '';
+
+  chat.innerHTML = '';
+  const you = document.createElement('div');
+  you.className = 'you'; you.textContent = '› ' + content;
+  const out = document.createElement('div');
+  out.className = 'out'; out.style.marginTop = '8px';
+  const cur = document.createElement('span'); cur.className = 'cursor';
+  chat.append(you, out, cur);
+  $('chatMeta').textContent = 'gerando…';
+
+  let acc = '', toks = 0; const t0 = performance.now();
+  try {
+    const res = await fetch('/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer mlx-local' },
+      body: JSON.stringify({ model: 'local', stream: true, max_tokens: 512, messages: [{ role: 'user', content }] }),
+    });
+    if (!res.ok || !res.body) throw new Error('HTTP ' + res.status);
+
+    const reader = res.body.getReader(); const dec = new TextDecoder(); let buf = '';
+    while (true) {
+      const { done, value } = await reader.read(); if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let i;
+      while ((i = buf.indexOf('\n')) >= 0) {
+        const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1);
+        if (!line.startsWith('data:')) continue;
+        const payload = line.slice(5).trim();
+        if (payload === '[DONE]') continue;
+        try {
+          const j = JSON.parse(payload);
+          const delta = j.choices?.[0]?.delta?.content || '';
+          if (delta) { acc += delta; toks++; out.textContent = acc;
+            chat.scrollTop = chat.scrollHeight; }
+        } catch { /* keep-alive */ }
+      }
+    }
+    const dt = (performance.now() - t0) / 1000;
+    const tps = dt > 0 ? (toks / dt) : 0;
+    $('g-tps').textContent = tps.toFixed(1);
+    $('chatMeta').textContent = `${toks} tokens · ${tps.toFixed(1)} tok/s · ${dt.toFixed(1)}s`;
+  } catch (e) {
+    out.textContent = acc + `\n\n[erro: ${e.message}]`;
+    out.style.color = 'var(--alert)';
+    $('chatMeta').textContent = 'falhou';
+  } finally {
+    cur.remove(); generating = false; send.disabled = false; input.focus();
+  }
+}
+
+send.addEventListener('click', run);
+input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); run(); } });
+input.focus();
+</script>
+</body>
+</html>

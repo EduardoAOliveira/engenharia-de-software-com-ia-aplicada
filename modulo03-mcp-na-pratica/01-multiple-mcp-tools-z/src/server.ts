@@ -4,8 +4,14 @@ import { buildGraph } from './graph/factory.ts';
 import Fastify from 'fastify';
 
 export const createServer = async () => {
-    const graph = await buildGraph();
+    const { graph, llm } = await buildGraph();
     const app = Fastify();
+
+    // Fecha os transportes MCP quando o servidor encerra (app.close()), garantindo
+    // shutdown limpo dos servidores MCP filhos e evitando o EPIPE de pipe quebrado.
+    app.addHook('onClose', async () => {
+        await llm.close();
+    });
 
     app.post('/chat', {
         schema: {
