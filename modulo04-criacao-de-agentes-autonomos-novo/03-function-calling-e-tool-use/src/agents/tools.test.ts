@@ -33,7 +33,7 @@ test("list_incidents defaults to open and respects filters", async () => {
   );
 
   const tool = createListIncidentsTool(store);
-  const defaultResult = String(await tool.invoke({}));
+  const defaultResult = String(await tool.invoke({ status: undefined }));
   assert.match(defaultResult, /open incident/);
   assert.match(defaultResult, new RegExp(open.id));
   assert.doesNotMatch(defaultResult, /Done/);
@@ -123,7 +123,7 @@ test("check_provider_status tool invoke with fake fetch (no network)", async () 
     );
 
   const tool = createCheckProviderStatusTool({ fetch: fake });
-  const result = String(await tool.invoke({}));
+  const result = String(await tool.invoke({ provider: undefined }));
   assert.equal(result, formatProviderStatus("github", "none", "All Systems Operational"));
 
   const cf = String(await tool.invoke({ provider: "cloudflare" }));

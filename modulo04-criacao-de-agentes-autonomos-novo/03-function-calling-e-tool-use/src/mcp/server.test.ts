@@ -69,7 +69,7 @@ test("server identity name is opspilot", async () => {
 test("MCP list_alerts matches LangChain tool on shared seeded store", async () => {
   const store = seededStore();
   const { client } = await connectClient(store);
-  const expected = await createListAlertsTool(store).invoke({});
+  const expected = await createListAlertsTool(store).invoke({ status: undefined });
   const result = await client.callTool({ name: "list_alerts", arguments: {} });
   assert.equal(toolText(result), String(expected));
 });
