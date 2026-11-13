@@ -6,13 +6,13 @@
 
 ## Summary
 
-Adicionar memória semântica por `userId`: `MemoryStore` (`remember` / `recall` / `forget`) com tabela `memories` em SQLite (mesmo `OPSPILOT_DB`), embeddings locais **all-MiniLM-L6-v2** via `@huggingface/transformers` (pooling mean + normalize, lazy singleton), BLOB Float32. `remember` deduplica se similaridade (produto escalar) **> 0,92**; `recall` devolve top-3 com score **≥ 0,3**. `POST /chat` passa a exigir `userId`, faz recall da mensagem e injeta os fatos no prompt (junto ao histórico de `007`). Teste obrigatório: recall acha fato sem palavra em comum.
+Adicionar memória semântica por `userId`: `MemoryStore` (`remember` / `recall` / `forget`) com tabela `memories` em SQLite (mesmo `OPSPILOT_DB`), embeddings locais **paraphrase-multilingual-MiniLM-L12-v2** via `@huggingface/transformers` (pooling mean + normalize, lazy singleton), BLOB Float32. `remember` deduplica se similaridade (produto escalar) **> 0,92**; `recall` devolve top-3 com score **≥ 0,3**. `POST /chat` passa a exigir `userId`, faz recall da mensagem e injeta os fatos no prompt (junto ao histórico de `007`). Teste obrigatório: recall acha fato sem palavra em comum.
 
 ## Technical Context
 
 **Language/Version**: Node.js 22 LTS, TypeScript ESM `strict: true`
 
-**Primary Dependencies**: Express ^4.19, zod ^3.23, `node:sqlite` (`DatabaseSync`); **novo** `@huggingface/transformers` (pipeline `feature-extraction`, modelo `Xenova/all-MiniLM-L6-v2`)
+**Primary Dependencies**: Express ^4.19, zod ^3.23, `node:sqlite` (`DatabaseSync`); **novo** `@huggingface/transformers` (pipeline `feature-extraction`, modelo `Xenova/paraphrase-multilingual-MiniLM-L12-v2`)
 
 **Storage**: SQLite tabela `memories` via `SqliteMemoryStore` no path `OPSPILOT_DB` (default `./data/opspilot.db`); `:memory:` nos testes do store; embedding 384-d em BLOB (`Float32Array` ↔ `Buffer`)
 
@@ -73,7 +73,7 @@ src/
 │   ├── types.ts                 # ← MemoryStore, MemoryFact, RecalledMemory, Embedder?, metrics.recalledMemories?
 │   └── errors.ts                # ← EmbeddingError (falha carga/inferência)
 ├── memory/
-│   ├── embeddings.ts            # NOVO: lazy singleton Xenova/all-MiniLM-L6-v2
+│   ├── embeddings.ts            # NOVO: lazy singleton Xenova/paraphrase-multilingual-MiniLM-L12-v2
 │   ├── embeddings.test.ts       # NOVO: smoke opcional / unit do wrapper se útil
 │   ├── memory-store.ts          # NOVO: SqliteMemoryStore
 │   └── memory-store.test.ts     # NOVO: :memory: + fake embedder + 1 teste semântico real

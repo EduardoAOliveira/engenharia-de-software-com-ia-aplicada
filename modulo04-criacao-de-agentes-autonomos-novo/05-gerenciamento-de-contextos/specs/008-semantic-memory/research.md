@@ -34,7 +34,7 @@
 **Decisão**:
 
 - Dependência: `@huggingface/transformers`.
-- Modelo: `Xenova/all-MiniLM-L6-v2` (ONNX para Transformers.js; equivalente all-MiniLM-L6-v2).
+- Modelo: `Xenova/paraphrase-multilingual-MiniLM-L12-v2` (ONNX para Transformers.js; equivalente paraphrase-multilingual-MiniLM-L12-v2).
 - API em `src/memory/embeddings.ts`:
 
 ```ts
@@ -45,7 +45,7 @@ export interface Embedder {
 export function getDefaultEmbedder(): Embedder; // lazy singleton
 ```
 
-- Internamente: `pipeline("feature-extraction", "Xenova/all-MiniLM-L6-v2")` uma vez; cada `embed` chama com `{ pooling: "mean", normalize: true }` e devolve `Float32Array` de length 384.
+- Internamente: `pipeline("feature-extraction", "Xenova/paraphrase-multilingual-MiniLM-L12-v2")` uma vez; cada `embed` chama com `{ pooling: "mean", normalize: true }` e devolve `Float32Array` de length 384.
 - Singleton: promise memoizada (evita double-init concorrente).
 - Falha de load/inferência → `EmbeddingError` (domínio).
 
@@ -174,3 +174,8 @@ Fake embedder: hash determinístico → vetor unitário (ou tabela texto→vetor
 ## Resolução de NEEDS CLARIFICATION
 
 Nenhum item do Technical Context ficou como NEEDS CLARIFICATION — decisões 1–9 fecham embedder, BLOB, limiares, forget, composição, schema e testes.
+
+## Atualização 2026-11-11 — modelo multilíngue
+
+`all-MiniLM-L6-v2` é treinado em inglês: com frases em PT-BR, texto sem relação ficava em ~0,40 de similaridade (acima do limiar de recall 0,3) e paráfrases ficavam em ~0,45–0,60, então recall trazia ruído e dedup (0,92) não disparava.
+Trocado para `Xenova/paraphrase-multilingual-MiniLM-L12-v2` (mesmos 384 dims, sem mudança de schema). Medido em PT-BR: sem relação ≈ 0,00; relacionado 0,53–0,62; paráfrase quase idêntica 0,92. Limiares 0,92/0,3 mantidos.

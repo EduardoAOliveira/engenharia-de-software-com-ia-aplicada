@@ -2,7 +2,7 @@ import { EmbeddingError } from "../domain/errors.js";
 import type { Embedder } from "../domain/types.js";
 
 export const EMBEDDING_DIM = 384;
-export const MODEL_ID = "Xenova/all-MiniLM-L6-v2";
+export const MODEL_ID = "Xenova/paraphrase-multilingual-MiniLM-L12-v2";
 
 type FeatureExtractionPipeline = (
   text: string,
@@ -50,7 +50,7 @@ class TransformersEmbedder implements Embedder {
 
 let defaultEmbedder: Embedder | null = null;
 
-/** Lazy singleton Embedder backed by all-MiniLM-L6-v2. */
+/** Lazy singleton Embedder backed by paraphrase-multilingual-MiniLM-L12-v2. */
 export function getDefaultEmbedder(): Embedder {
   if (!defaultEmbedder) {
     defaultEmbedder = new TransformersEmbedder();

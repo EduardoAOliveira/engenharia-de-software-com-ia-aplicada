@@ -34,7 +34,7 @@
 |----------|----------|
 | `embed(text)` | `Promise<Float32Array>` length 384, L2-normalized |
 
-Implementação default: lazy singleton Transformers.js `Xenova/all-MiniLM-L6-v2`, `{ pooling: "mean", normalize: true }`.
+Implementação default: lazy singleton Transformers.js `Xenova/paraphrase-multilingual-MiniLM-L12-v2`, `{ pooling: "mean", normalize: true }`.
 
 ---
 
@@ -46,7 +46,7 @@ Implementação default: lazy singleton Transformers.js `Xenova/all-MiniLM-L6-v2
 | Dedup threshold | `> 0.92` (estrito) |
 | Recall min score | `≥ 0.3` (inclusivo) |
 | Recall top-K | `3` |
-| Model id | `Xenova/all-MiniLM-L6-v2` |
+| Model id | `Xenova/paraphrase-multilingual-MiniLM-L12-v2` |
 
 ---
 

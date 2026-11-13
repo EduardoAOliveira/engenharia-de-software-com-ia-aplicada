@@ -6,7 +6,7 @@
 
 **Status**: Draft
 
-**Input**: User description: "Memória semântica: MemoryStore por userId - rember (dedup > 0.92), recall top-3 por produto escalar (min 0.3), forget; tabela memories, embedding all-MiniLM-L6-v2 local em BLOB; /chat ganha userId e injeta o recall no prompt; teste: recall acha fato sem palavra em comum. user: @huggingface/transformers com pooling: mean + normaliza: true e lazy singleton src/memory/embeddings.ts e src/memory/memory-store.ts. As colunas de memories (id, user_id, fact, embedding, created_at"
+**Input**: User description: "Memória semântica: MemoryStore por userId - rember (dedup > 0.92), recall top-3 por produto escalar (min 0.3), forget; tabela memories, embedding paraphrase-multilingual-MiniLM-L12-v2 local em BLOB; /chat ganha userId e injeta o recall no prompt; teste: recall acha fato sem palavra em comum. user: @huggingface/transformers com pooling: mean + normaliza: true e lazy singleton src/memory/embeddings.ts e src/memory/memory-store.ts. As colunas de memories (id, user_id, fact, embedding, created_at"
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -77,7 +77,7 @@ O operador (ou API/fluxo definido no plano) pode `forget` uma memória específi
 - **FR-003**: `recall(userId, query)` MUST retornar até **3** fatos do usuário ordenados por similaridade (produto escalar) decrescente, incluindo apenas itens com score **≥ 0,3**.
 - **FR-004**: `forget(userId, id)` MUST remover a memória indicada pertencente àquele usuário (ou no-op/erro de domínio se inexistente — plano documenta; nunca remove de outro usuário).
 - **FR-005**: A persistência MUST usar tabela `memories` com colunas: `id`, `user_id`, `fact`, `embedding` (BLOB), `created_at`, no padrão SQLite do projeto (`node:sqlite` / `DatabaseSync`, DDL idempotente, prepared statements).
-- **FR-006**: Embeddings MUST ser produzidos localmente com o modelo **all-MiniLM-L6-v2** (via stack `@huggingface/transformers`), com pooling **mean** e **normalize: true**, e o vetor serializado no BLOB; carregamento MUST ser **lazy singleton**.
+- **FR-006**: Embeddings MUST ser produzidos localmente com o modelo **paraphrase-multilingual-MiniLM-L12-v2** (via stack `@huggingface/transformers`), com pooling **mean** e **normalize: true**, e o vetor serializado no BLOB; carregamento MUST ser **lazy singleton**.
 - **FR-007**: A implementação de embedding e store MUST viver em `src/memory/embeddings.ts` e `src/memory/memory-store.ts` (ou caminhos equivalentes sob `src/memory/` se o plano renomear levemente — nomes canônicos do input do usuário).
 - **FR-008**: `POST /chat` MUST aceitar `userId` (validado com zod) e, antes da estratégia, MUST executar `recall` e injetar os fatos recuperados no prompt composto.
 - **FR-009**: DEVE existir teste automatizado demonstrando que `recall` recupera um fato **sem palavras em comum** entre query e fato (similaridade semântica).
@@ -88,7 +88,7 @@ O operador (ou API/fluxo definido no plano) pode `forget` uma memória específi
 
 - **Memory (fato)**: Unidade de memória semântica. Atributos: `id`, `userId`, texto do `fact`, vetor `embedding`, `createdAt`.
 - **MemoryStore**: Contrato de persistência/consulta semântica (`remember`, `recall`, `forget`) por usuário.
-- **EmbeddingPipeline**: Serviço lazy singleton que transforma texto em vetor normalizado (all-MiniLM-L6-v2, mean pooling).
+- **EmbeddingPipeline**: Serviço lazy singleton que transforma texto em vetor normalizado (paraphrase-multilingual-MiniLM-L12-v2, mean pooling).
 - **ChatRequest** (estendido): Campos existentes (`message`, `strategy?`, `reflect?`, `conversationId?`) mais `userId`.
 - **RecalledFacts**: Lista de até 3 fatos (texto + score opcional na camada interna) injetados no prompt.
 

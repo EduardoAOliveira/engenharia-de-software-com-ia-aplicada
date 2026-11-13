@@ -10,7 +10,7 @@ Guia de validação end-to-end. Sem código de implementação completo.
 
 - Node.js 22 LTS
 - `npm install` na raiz (inclui `@huggingface/transformers`)
-- Primeira execução do teste semântico pode **baixar** `Xenova/all-MiniLM-L6-v2` (cache local HF); rede necessária só nesse cold start
+- Primeira execução do teste semântico pode **baixar** `Xenova/paraphrase-multilingual-MiniLM-L12-v2` (cache local HF); rede necessária só nesse cold start
 - Smoke com LLM: `OPENROUTER_API_KEY` em `.env` (opcional)
 
 ---

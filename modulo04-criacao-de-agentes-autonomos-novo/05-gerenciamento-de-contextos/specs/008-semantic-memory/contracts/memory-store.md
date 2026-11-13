@@ -18,7 +18,7 @@ interface Embedder {
 |-------|---------|
 | Dimensão | 384 |
 | Norma | L2 ≈ 1 (normalize: true) |
-| Modelo default | `Xenova/all-MiniLM-L6-v2` via `@huggingface/transformers` |
+| Modelo default | `Xenova/paraphrase-multilingual-MiniLM-L12-v2` via `@huggingface/transformers` |
 | Pipeline | `feature-extraction` + `{ pooling: "mean", normalize: true }` |
 | Lifecycle | Lazy singleton (`getDefaultEmbedder()`); uma pipeline por processo |
 | Erros | Falha de carga/inferência → `EmbeddingError` |
